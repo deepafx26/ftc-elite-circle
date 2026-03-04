@@ -35,18 +35,22 @@ async function syncPortfolio() {
 
   for (const acc of accounts) {
 
-    const trader = {
+  const { error } = await supabase
+    .from("traders")
+    .insert({
       trader_name: acc.name,
       growth_percentage: acc.gain,
       drawdown_percentage: acc.drawdown,
       current_equity: acc.equity
-    };
+    });
 
-    await supabase.from("traders").upsert(trader);
-
-    console.log("Trader diupdate:", acc.name);
-
+  if (error) {
+    console.error("Supabase error:", error);
+  } else {
+    console.log("Trader masuk:", acc.name);
   }
+
+}
 
   await fetch(`https://www.myfxbook.com/api/logout.json?session=${session}`);
 
