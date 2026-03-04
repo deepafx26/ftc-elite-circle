@@ -1,25 +1,33 @@
 import { createClient } from "@supabase/supabase-js";
 
-export async function GET(request: Request) {
+export async function GET(req: Request) {
 
-  const { searchParams } = new URL(request.url);
+  try {
 
-  const sortBy = searchParams.get("sortBy") || "growth_percentage";
-  const order = searchParams.get("order") || "desc";
+    const { searchParams } = new URL(req.url);
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+    const sortBy = searchParams.get("sortBy") || "growth_percentage";
+    const order = searchParams.get("order") || "desc";
 
-  const { data, error } = await supabase
-    .from("traders")
-    .select("*")
-    .order(sortBy, { ascending: order === "asc" });
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-  if (error) {
-    return Response.json({ error: error.message });
+    const { data, error } = await supabase
+      .from("traders")
+      .select("*")
+      .order(sortBy, { ascending: order === "asc" });
+
+    if (error) {
+      console.error(error);
+      return Response.json({ data: [] });
+    }
+
+    return Response.json({ data });
+
+  } catch (err) {
+    console.error("API ERROR:", err);
+    return Response.json({ data: [] });
   }
-
-  return Response.json({ data });
 }
