@@ -106,7 +106,7 @@ export async function GET() {
    }
 
   }
-
+console.log("ACCOUNTS:", accounts)
   // Response jika proses sync selesai
   return Response.json({ status: "sync complete" })
 
