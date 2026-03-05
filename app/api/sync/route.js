@@ -65,7 +65,7 @@ export async function GET() {
      .from("traders")
      .insert({
       myfxbook_account_id: accountId,
-      name: account.name,
+      trader_name: account.name,
       current_equity: account.equity,
       growth_percentage: account.gain,
       drawdown_percentage: account.drawdown,
