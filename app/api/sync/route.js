@@ -148,7 +148,7 @@ if (equityData && equityData.dailyGain) {
 }
 
 // ambil trade history per akun
-let tradeData = null
+let tradeData
 
 try {
 
