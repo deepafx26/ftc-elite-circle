@@ -44,6 +44,10 @@ export async function GET() {
   // Loop semua account yang ditemukan
   for (const account of accounts.accounts) {
 
+      // variable untuk menyimpan ID trader (dipakai oleh semua table)
+      let traderId
+
+
    // ID account Myfxbook
    const accountId = account.id
 
@@ -74,12 +78,13 @@ export async function GET() {
  })
  .select()
  .single()
-traderId = data.id
+
 
     // Log jika insert gagal
     if (error) {
      console.error("INSERT ERROR:", error)
     } else {
+      traderId = data.id
      console.log("INSERT SUCCESS:", account.name)
     }
 
