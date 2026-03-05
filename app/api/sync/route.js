@@ -104,7 +104,7 @@ export async function GET() {
       drawdown_percentage: account.drawdown,
       updated_at: new Date()
      })
-     .eq("id", traderId)
+     .eq("id", trader.id)
 
     // Log jika update gagal
     if (error) {
@@ -166,7 +166,7 @@ try {
 }
 
 
-
+console.log("TRADE COUNT:", tradeData?.history?.length)
 // Simpan trade history ke table trade_history
 if (tradeData && tradeData.history) {
 for (const trade of tradeData.history) {
