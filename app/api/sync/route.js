@@ -177,6 +177,7 @@ try {
   for (const trade of tradeData.history) {
 
   // cek field penting
+  const lot = parseFloat(trade.sizing?.value);
   if (!trade.action || trade.lots == null) {
     console.warn("TRADE SKIPPED (missing type/lot):", trade);
     continue; // skip insert
@@ -189,7 +190,7 @@ try {
       ticket: trade.ticket,
       symbol: trade.symbol,
       type: trade.action,
-      lot: trade.lots,
+      lot: lot,
       entry_price: trade.openPrice,
       exit_price: trade.closePrice,
       profit: trade.profit,
