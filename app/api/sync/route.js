@@ -45,7 +45,8 @@ console.log("ACCOUNTS FOUND:", accounts.accounts.length)
       
   // Loop semua account yang ditemukan
   for (const account of accounts.accounts) {
-
+console.log("=================================")
+console.log("SYNC START:", account.name)
     
   // ID trader yang akan dipakai oleh semua table
   let traderId = null
@@ -218,7 +219,7 @@ for (const trade of tradeData.history) {
 
 
   console.log("TRADER ID:", traderId)
-  
+  console.log("SYNC DONE:", account.name)
   
   }
   console.log("ACCOUNTS:", accounts)
