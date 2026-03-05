@@ -44,8 +44,7 @@ export async function GET() {
   // Loop semua account yang ditemukan
   for (const account of accounts.accounts) {
 
-      // variable untuk menyimpan ID trader (dipakai oleh semua table)
-      let traderId
+    
 
 
    // ID account Myfxbook
@@ -128,7 +127,7 @@ const equityData = await equityRes.json()
   await supabase
     .from("equity_history")
     .insert({
-      trader_id: traderId,
+      trader_id: trader.id,
       date: row.date,
       equity: row.equity,
       balance: row.balance
@@ -148,7 +147,7 @@ for (const trade of tradeData.history) {
   await supabase
     .from("trade_history")
     .insert({
-      trader_id: traderId,
+      trader_id: trader.id,
       ticket: trade.ticket,
       symbol: trade.symbol,
       type: trade.type,
