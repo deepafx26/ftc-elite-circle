@@ -104,7 +104,7 @@ export async function GET() {
       drawdown_percentage: account.drawdown,
       updated_at: new Date()
      })
-     .eq("id", trader.id)
+     .eq("id", traderId)
 
     // Log jika update gagal
     if (error) {
@@ -148,7 +148,8 @@ if (equityData && equityData.dailyGain) {
 }
 
 // ambil trade history per akun
-let tradeData
+let tradeData = null
+
 
 try {
 
@@ -164,7 +165,7 @@ try {
 
 }
 
-const tradeData = await tradeRes.json()
+
 
 // Simpan trade history ke table trade_history
 if (tradeData && tradeData.history) {
