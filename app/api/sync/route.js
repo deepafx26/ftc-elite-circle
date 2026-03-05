@@ -151,12 +151,12 @@ export async function GET() {
               continue;
             }
 
-            // normalize type ke uppercase
-            const type = trade.action.toUpperCase();
-            if (!['BUY','SELL'].includes(type)) {
-              console.warn("TRADE SKIPPED (invalid type value):", trade);
-              continue;
-            }
+            // sesuaikan type dengan enum DB ('Buy','Sell')
+              const type = trade.action.charAt(0).toUpperCase() + trade.action.slice(1).toLowerCase();
+              if (!['Buy','Sell'].includes(type)) {
+                console.warn("TRADE SKIPPED (invalid type enum):", trade);
+                continue;
+              }
 
             // pastikan symbol ada
             if (!trade.symbol) {
