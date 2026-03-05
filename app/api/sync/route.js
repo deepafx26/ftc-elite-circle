@@ -1,168 +1,134 @@
-// Import client Supabase
-import { createClient } from '@supabase/supabase-js'
+// Import Supabase client
+import { createClient } from '@supabase/supabase-js';
 
-// Membuat koneksi ke database Supabase menggunakan environment variable
 const supabase = createClient(
- process.env.NEXT_PUBLIC_SUPABASE_URL,
- process.env.SUPABASE_SERVICE_ROLE_KEY
-)
-export const dynamic = "force-dynamic"
-// Endpoint API /api/sync
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export const dynamic = "force-dynamic";
+
 export async function GET() {
+  try {
+    console.log("===== START SYNC =====");
 
- try {
+    // login Myfxbook
+    const loginRes = await fetch(
+      `https://www.myfxbook.com/api/login.json?email=${process.env.MYFXBOOK_EMAIL}&password=${process.env.MYFXBOOK_PASSWORD}`
+    );
+    const loginData = await loginRes.json();
+    const session = loginData.session;
 
-  console.log("===== START SYNC =====")
-
-  // login Myfxbook
-  const loginRes = await fetch(
-   `https://www.myfxbook.com/api/login.json?email=${process.env.MYFXBOOK_EMAIL}&password=${process.env.MYFXBOOK_PASSWORD}`
-  )
-
-  const loginData = await loginRes.json()
-  const session = loginData.session
-
-  if (!session) {
-   console.error("MYFXBOOK LOGIN FAILED")
-   return Response.json({ error: "login failed" })
-  }
-
-  console.log("MYFXBOOK LOGIN SUCCESS")
-
-  // ambil list account
-  const accountRes = await fetch(
-   `https://www.myfxbook.com/api/get-my-accounts.json?session=${session}`
-  )
-
-  const accounts = await accountRes.json()
-
-  if (!accounts.accounts) {
-   console.error("NO ACCOUNTS FOUND")
-   return Response.json({ error: "no accounts" })
-  }
-
-  console.log("TOTAL ACCOUNTS:", accounts.accounts.length)
-
-  // ==============================
-  // LOOP SEMUA ACCOUNT
-  // ==============================
-
-  for (const account of accounts.accounts) {
-
-   const accountId = account.id
-   let traderId = null
-
-   console.log("================================")
-   console.log("PROCESS ACCOUNT:", account.name)
-
-   // cek trader
-   const { data: traders } = await supabase
-    .from("traders")
-    .select("*")
-    .eq("myfxbook_account_id", accountId)
-
-   if (!traders || traders.length === 0) {
-
-    const { data, error } = await supabase
-     .from("traders")
-     .insert({
-      myfxbook_account_id: accountId,
-      trader_name: account.name,
-      current_equity: account.equity,
-      growth_percentage: account.gain,
-      drawdown_percentage: account.drawdown,
-      created_at: new Date()
-     })
-     .select()
-     .single()
-
-    if (error) {
-     console.error("INSERT TRADER ERROR:", error)
-     continue
+    if (!session) {
+      console.error("MYFXBOOK LOGIN FAILED");
+      return Response.json({ error: "login failed" });
     }
 
-    traderId = data.id
-    console.log("TRADER INSERTED:", traderId)
+    console.log("MYFXBOOK LOGIN SUCCESS");
 
-   } else {
+    // ambil list account
+    const accountRes = await fetch(
+      `https://www.myfxbook.com/api/get-my-accounts.json?session=${session}`
+    );
+    const accounts = await accountRes.json();
 
-    traderId = traders[0].id
+    if (!accounts.accounts) {
+      console.error("NO ACCOUNTS FOUND");
+      return Response.json({ error: "no accounts" });
+    }
 
-    await supabase
-     .from("traders")
-     .update({
-      current_equity: account.equity,
-      growth_percentage: account.gain,
-      drawdown_percentage: account.drawdown,
-      updated_at: new Date()
-     })
-     .eq("id", traderId)
+    console.log("TOTAL ACCOUNTS:", accounts.accounts.length);
 
-    console.log("TRADER UPDATED:", traderId)
+    for (const account of accounts.accounts) {
+      const accountId = account.id;
+      let traderId = null;
 
-   }
+      console.log("================================");
+      console.log("PROCESS ACCOUNT:", account.name);
 
-   // ==============================//
-   // UPDATE trader_details         //
-   // ==============================//
+      // cek trader
+      const { data: traders } = await supabase
+        .from("traders")
+        .select("*")
+        .eq("myfxbook_account_id", accountId);
 
-   await supabase
-    .from("trader_details")
-    .upsert({
-     trader_id: traderId,
-     current_balance: account.balance,
-     total_deposit: account.balance,
-     updated_at: new Date()
-    }, { onConflict: "trader_id" })
+      if (!traders || traders.length === 0) {
+        const { data, error } = await supabase
+          .from("traders")
+          .insert({
+            myfxbook_account_id: accountId,
+            trader_name: account.name,
+            current_equity: account.equity,
+            growth_percentage: account.gain,
+            drawdown_percentage: account.drawdown,
+            created_at: new Date()
+          })
+          .select()
+          .single();
 
-   console.log("DETAIL UPDATED")
+        if (error) {
+          console.error("INSERT TRADER ERROR:", error);
+          continue;
+        }
 
-    // ==============================//
-    // EQUITY HISTORY                //
-    // ==============================//
+        traderId = data.id;
+        console.log("TRADER INSERTED:", traderId);
+      } else {
+        traderId = traders[0].id;
 
-try {
+        await supabase
+          .from("traders")
+          .update({
+            current_equity: account.equity,
+            growth_percentage: account.gain,
+            drawdown_percentage: account.drawdown,
+            updated_at: new Date()
+          })
+          .eq("id", traderId);
 
- const equityRes = await fetch(
-  `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
- )
+        console.log("TRADER UPDATED:", traderId);
+      }
 
- const equityData = await equityRes.json()
+      // update trader_details
+      await supabase
+        .from("trader_details")
+        .upsert({
+          trader_id: traderId,
+          current_balance: account.balance,
+          total_deposit: account.balance,
+          updated_at: new Date()
+        }, { onConflict: "trader_id" });
 
- if (equityData?.dailyGain?.length) {
+      console.log("DETAIL UPDATED");
 
-  console.log("EQUITY ROWS:", equityData.dailyGain.length)
+      // equity history
+      try {
+        const equityRes = await fetch(
+          `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
+        );
+        const equityData = await equityRes.json();
 
-  for (const row of equityData.dailyGain) {
+        if (equityData?.dailyGain?.length) {
+          console.log("EQUITY ROWS:", equityData.dailyGain.length);
 
-   await supabase
- .from("equity_history")
- .upsert({
-  trader_id: traderId,
-  date: row.date,
-  equity: account.equity
- }, { onConflict: "trader_id,date" })
+          for (const row of equityData.dailyGain) {
+            await supabase
+              .from("equity_history")
+              .upsert({
+                trader_id: traderId,
+                date: row.date,
+                equity: account.equity
+              }, { onConflict: "trader_id,date" });
+          }
+        } else {
+          console.log("NO EQUITY DATA:", account.name);
+        }
+      } catch (err) {
+        console.error("EQUITY ERROR:", err);
+      }
 
-  }
-
- } else {
-
-  console.log("NO EQUITY DATA:", account.name)
-
- }
-
-} catch (err) {
-
- console.error("EQUITY ERROR:", err)
-
-}
-
-
-// ==============================
-// TRADE HISTORY
-// ==============================
-
-try {
+      // trade history
+      try {
         const tradeRes = await fetch(
           `https://www.myfxbook.com/api/get-history.json?session=${session}&id=${accountId}`
         );
