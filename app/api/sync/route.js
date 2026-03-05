@@ -176,41 +176,37 @@ try {
 
   for (const trade of tradeData.history) {
 
-      // skip Deposit/Withdrawal
-  if (trade.action === 'Deposit' || trade.action === 'Withdrawal') {
-    console.log("NON-TRADE SKIPPED:", trade);
+  // skip Deposit/Withdrawal
+  if (trade.action === 'Deposit' || trade.action === 'Withdrawal') continue;
+
+  // ambil lot dari sizing.value atau fallback
+  const lot = parseFloat(trade.sizing?.value || trade.lots);
+  if (!trade.action || !lot || lot <= 0) {
+    console.warn("TRADE SKIPPED (invalid type/lot):", trade);
     continue;
   }
 
-  // ambil lot dari sizing.value
-  const lot = parseFloat(trade.sizing?.value);
-
-
-  // cek field penting
-  if (!trade.action || trade.lots == null) {
-    console.warn("TRADE SKIPPED (missing type/lot):", trade);
-    continue; // skip insert
+  // pastikan symbol valid
+  if (!trade.symbol) {
+    console.warn("TRADE SKIPPED (missing symbol):", trade);
+    continue;
   }
 
-  const { error } = await supabase
-    .from("trade_history")
-    .upsert({
-      trader_id: traderId,
-      ticket: trade.ticket,
-      symbol: trade.symbol,
-      type: trade.type,
-      lot: lot,
-      entry_price: trade.openPrice,
-      exit_price: trade.closePrice,
-      profit: trade.profit,
-      date: trade.closeTime
-    }, { onConflict: "ticket" });
+  // insert ke Supabase
+  const { error } = await supabase.from("trade_history").upsert({
+    trader_id: traderId,
+    ticket: trade.ticket,
+    symbol: trade.symbol,
+    type: trade.action,
+    lot: lot,
+    entry_price: trade.openPrice || 0,
+    exit_price: trade.closePrice || 0,
+    profit: trade.profit || 0,
+    date: trade.closeTime
+  }, { onConflict: "ticket" });
 
-  if (error) {
-    console.error("TRADE INSERT ERROR:", error);
-  } else {
-    console.log("TRADE INSERTED:", trade.ticket);
-  }
+  if (error) console.error("TRADE INSERT ERROR:", error);
+  else console.log("TRADE INSERTED:", trade.ticket);
 }
 
  } else {
