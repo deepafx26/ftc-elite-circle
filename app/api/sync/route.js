@@ -114,6 +114,22 @@ export async function GET() {
     }
 
    }
+// =========================
+// INSERT / UPDATE trader_details
+// =========================
+
+await supabase
+  .from("trader_details")
+  .upsert({
+    trader_id: traderId,
+    balance: account.balance,
+    equity: account.equity,
+    gain: account.gain,
+    drawdown: account.drawdown,
+    profit: account.profit,
+    updated_at: new Date()
+  }, { onConflict: "trader_id" })
+
 
    // ambil equity history per akun
 let equityData = null
@@ -131,7 +147,7 @@ try {
  console.error("EQUITY FETCH ERROR:", err)
 
 }
-
+console.log("EQUITY DATA:", equityData)
 // Simpan equity history ke table equity_history
 if (equityData && equityData.dailyGain) {
    for (const row of equityData.dailyGain) {
@@ -165,7 +181,7 @@ try {
 
 }
 
-
+console.log("TRADE DATA:", tradeData)
 console.log("TRADE COUNT:", tradeData?.history?.length)
 // Simpan trade history ke table trade_history
 if (tradeData && tradeData.history) {
@@ -173,7 +189,7 @@ for (const trade of tradeData.history) {
 
   await supabase
     .from("trade_history")
-    .insert({
+    .upsert({
       trader_id: traderId,
       ticket: trade.ticket,
       symbol: trade.symbol,
