@@ -1,146 +1,125 @@
+// Import client Supabase
 import { createClient } from '@supabase/supabase-js'
 
-// koneksi ke Supabase
+// Membuat koneksi ke database Supabase menggunakan environment variable
 const supabase = createClient(
  process.env.NEXT_PUBLIC_SUPABASE_URL,
  process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-// ambil credential Myfxbook dari env
-const email = process.env.MYFXBOOK_EMAIL
-const password = process.env.MYFXBOOK_PASSWORD
-
+// Endpoint API /api/sync
 export async function GET() {
 
- // login ke Myfxbook
- const login = await fetch(
-  `https://www.myfxbook.com/api/login.json?email=${email}&password=${password}`
- )
+ try {
 
- const loginData = await login.json()
- const session = loginData.session
+  // Ambil credential Myfxbook dari environment variable
+  const email = process.env.MYFXBOOK_EMAIL
+  const password = process.env.MYFXBOOK_PASSWORD
 
- // ambil semua akun myfxbook
- const accountsRes = await fetch(
-  `https://www.myfxbook.com/api/get-my-accounts.json?session=${session}`
- )
+  // Cek apakah credential tersedia
+  if (!email || !password) {
+   return new Response("Missing Myfxbook credentials")
+  }
 
- const accounts = await accountsRes.json()
+  // Login ke API Myfxbook
+  const login = await fetch(
+   `https://www.myfxbook.com/api/login.json?email=${email}&password=${password}`
+  )
 
+  // Convert response login menjadi JSON
+  const loginData = await login.json()
 
- // LOOP SETIAP ACCOUNT
- for (const account of accounts.accounts) {
+  // Ambil session token dari Myfxbook
+  const session = loginData.session
 
-  const accountId = account.id
+  // Mengambil daftar account trading dari Myfxbook
+  const accountsRes = await fetch(
+   `https://www.myfxbook.com/api/get-my-accounts.json?session=${session}`
+  )
 
+  // Convert response account menjadi JSON
+  const accounts = await accountsRes.json()
 
-  // ===============================
-  // 1 INSERT / UPDATE TABLE TRADERS
-  // ===============================
+      
+  // Loop semua account yang ditemukan
+  for (const account of accounts.accounts) {
 
-  const { data: traders } = await supabase
-   .from("traders")
-   .select("*")
-   .eq("myfxbook_account_id", accountId)
+   // ID account Myfxbook
+   const accountId = account.id
 
-  let trader
-
-  if (!traders || traders.length === 0) {
-
-   const { data } = await supabase
+   // Cek apakah account ini sudah ada di table traders
+   const { data: traders, error: findError } = await supabase
     .from("traders")
-    .insert({
+    .select("*")
+    .eq("myfxbook_account_id", accountId)
+
+   // Jika query error tampilkan di log
+   if (findError) {
+    console.error("CHECK ERROR:", findError)
+    continue
+   }
+
+   // Jika trader BELUM ADA di database → INSERT
+   if (!traders || traders.length === 0) {
+
+    const { error } = await supabase
+     .from("traders")
+     .insert({
       myfxbook_account_id: accountId,
       trader_name: account.name,
       current_equity: account.equity,
       growth_percentage: account.gain,
-      drawdown_percentage: account.drawdown
-    })
-    .select()
+      drawdown_percentage: account.drawdown,
+      created_at: new Date()
+     })
 
-   trader = data[0]
+    // Log jika insert gagal
+    if (error) {
+     console.error("INSERT ERROR:", error)
+    } else {
+     console.log("INSERT SUCCESS:", account.name)
+    }
 
-  } else {
+   }
 
-   trader = traders[0]
+   // Jika trader SUDAH ADA → UPDATE data terbaru
+   else {
 
-   await supabase
-    .from("traders")
-    .update({
+    const trader = traders[0]
+
+    const { error } = await supabase
+     .from("traders")
+     .update({
       current_equity: account.equity,
       growth_percentage: account.gain,
       drawdown_percentage: account.drawdown,
       updated_at: new Date()
-    })
-    .eq("id", trader.id)
-
-  }
-
-
-
-  // ==================================
-  // 2 AMBIL TRADE HISTORY MYFXBOOK
-  // ==================================
-
-  const tradeRes = await fetch(
-   `https://www.myfxbook.com/api/get-history.json?session=${session}&id=${accountId}`
-  )
-
-  const tradeData = await tradeRes.json()
-
-  if (tradeData.history) {
-
-   for (const trade of tradeData.history) {
-
-    await supabase
-     .from("trade_history")
-     .insert({
-       trader_id: trader.id,
-       ticket: trade.ticket,
-       symbol: trade.symbol,
-       type: trade.type,
-       lots: trade.lots,
-       profit: trade.profit,
-       open_time: trade.openTime,
-       close_time: trade.closeTime
      })
+     .eq("id", trader.id)
+
+    // Log jika update gagal
+    if (error) {
+     console.error("UPDATE ERROR:", error)
+    } else {
+     console.log("UPDATE SUCCESS:", trader.name)
+    }
 
    }
 
   }
+console.log("ACCOUNTS:", accounts)
+  // Response jika proses sync selesai
+  return Response.json({ status: "sync complete" })
 
+ } catch (error) {
 
+  // Tangkap error global supaya server tidak crash
+  console.error("SYNC ERROR:", error)
 
-  // ==================================
-  // 3 AMBIL EQUITY HISTORY
-  // ==================================
-
-  const equityRes = await fetch(
-   `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
-  )
-
-  const equityData = await equityRes.json()
-
-  if (equityData.dailyGain) {
-
-   for (const row of equityData.dailyGain) {
-
-    await supabase
-     .from("equity_history")
-     .insert({
-       trader_id: trader.id,
-       date: row.date,
-       equity: row.equity,
-       balance: row.balance
-     })
-
-   }
-
-  }
-
+  return Response.json({
+   error: error.message
+  })
 
  }
-
- return Response.json({ status: "sync complete" })
 
 }
