@@ -1,45 +1,79 @@
-import fetch from "node-fetch";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+ process.env.SUPABASE_URL,
+ process.env.SUPABASE_SERVICE_ROLE_KEY
+)
+
+const email = process.env.MYFXBOOK_EMAIL
+const password = process.env.MYFXBOOK_PASSWORD
 
 export async function GET() {
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+ const login = await fetch(
+  `https://www.myfxbook.com/api/login.json?email=${email}&password=${password}`
+ )
 
-  const email = process.env.MYFXBOOK_EMAIL;
-  const password = process.env.MYFXBOOK_PASSWORD;
+ const loginData = await login.json()
+ const session = loginData.session
 
-  const login = await fetch(
-    `https://www.myfxbook.com/api/login.json?email=${email}&password=${password}`
-  );
+ const accountsRes = await fetch(
+  `https://www.myfxbook.com/api/get-my-accounts.json?session=${session}`
+ )
 
-  const loginData = await login.json();
-  const session = loginData.session;
+ const accounts = await accountsRes.json()
 
-  const accountsRes = await fetch(
-    `https://www.myfxbook.com/api/get-my-accounts.json?session=${session}`
-  );
+ for (const account of accounts.accounts) {
 
-  const accountsData = await accountsRes.json();
+  const accountId = account.id
 
-  for (const acc of accountsData.accounts) {
+  const { data: traders } = await supabase
+   .from("traders")
+   .select("*")
+   .eq("myfxbook_account_id", accountId)
 
-    await supabase.from("traders").insert({
-      trader_name: acc.name,
-      growth_percentage: acc.gain,
-      drawdown_percentage: acc.drawdown,
-      current_equity: acc.equity
-    });
+  if (!traders.length) continue
+
+  const trader = traders[0]
+
+  const historyRes = await fetch(
+   `https://www.myfxbook.com/api/get-history.json?session=${session}&id=${accountId}`
+  )
+
+  const historyData = await historyRes.json()
+
+  for (const trade of historyData.history) {
+
+   await supabase
+    .from("trades")
+    .upsert({
+     ticket: trade.ticket,
+     trader_id: trader.id,
+     symbol: trade.symbol,
+     type: trade.type,
+     lots: trade.lots,
+     open_price: trade.openPrice,
+     close_price: trade.closePrice,
+     profit: trade.profit,
+     open_time: trade.openTime,
+     close_time: trade.closeTime
+    })
 
   }
 
-  await fetch(`https://www.myfxbook.com/api/logout.json?session=${session}`);
+  await supabase
+   .from("traders")
+   .update({
+    growth_percentage: account.gain,
+    drawdown_percentage: account.drawdown,
+    current_equity: account.equity,
+    balance: account.balance,
+    updated_at: new Date()
+   })
+   .eq("id", trader.id)
 
-  return Response.json({
-    status: "sync selesai",
-    accounts: accountsData.accounts.length
-  });
+ }
+
+ return Response.json({ status: "sync complete" })
 
 }
