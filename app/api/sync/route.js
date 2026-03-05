@@ -7,7 +7,9 @@ const supabase = createClient(
 
 const email = process.env.MYFXBOOK_EMAIL
 const password = process.env.MYFXBOOK_PASSWORD
-
+    if (!email || !password) {
+        return new Response("Missing Myfxbook credentials")
+    }
 export async function GET() {
 
  const login = await fetch(
@@ -28,40 +30,40 @@ export async function GET() {
   const accountId = account.id
 
   const { data: traders } = await supabase
-   .from("traders")
-   .select("*")
-   .eq("myfxbook_account_id", accountId)
+    .from("traders")
+    .select("*")
+    .eq("myfxbook_account_id", accountId)
 
   if (!traders || traders.length === 0) {
 
-   await supabase
-    .from("traders")
-    .insert({
-     name: account.name,
-     myfxbook_account_id: accountId,
-     growth_percentage: account.gain,
-     drawdown_percentage: account.drawdown,
-     current_equity: account.equity,
-     created_at: new Date()
-    })
+    await supabase
+      .from("traders")
+      .insert({
+        myfxbook_account_id: accountId,
+        name: account.name,
+        current_equity: account.equity,
+        growth_percentage: account.gain,
+        drawdown_percentage: account.drawdown,
+        created_at: new Date()
+      })
 
   } else {
 
-   const trader = traders[0]
+    const trader = traders[0]
 
-   await supabase
-    .from("traders")
-    .update({
-     growth_percentage: account.gain,
-     drawdown_percentage: account.drawdown,
-     current_equity: account.equity,
-     updated_at: new Date()
-    })
-    .eq("id", trader.id)
+    await supabase
+      .from("traders")
+      .update({
+        current_equity: account.equity,
+        growth_percentage: account.gain,
+        drawdown_percentage: account.drawdown,
+        updated_at: new Date()
+      })
+      .eq("id", trader.id)
 
   }
 
- }
+}
 
  return Response.json({ status: "sync complete" })
 
