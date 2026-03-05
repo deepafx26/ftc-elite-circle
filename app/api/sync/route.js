@@ -116,11 +116,21 @@ export async function GET() {
    }
 
    // ambil equity history per akun
-const equityRes = await fetch(
- `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
-)
+let equityData = null
 
-const equityData = await equityRes.json()
+try {
+
+ const equityRes = await fetch(
+  `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
+ )
+
+ equityData = await equityRes.json()
+
+} catch (err) {
+
+ console.error("EQUITY FETCH ERROR:", err)
+
+}
 
 // Simpan equity history ke table equity_history
    for (const row of equityData.dailyGain) {
