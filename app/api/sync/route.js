@@ -136,12 +136,12 @@ try {
   for (const row of equityData.dailyGain) {
 
    await supabase
-    .from("equity_history")
-    .upsert({
-     trader_id: traderId,
-     date: row.date,
-     equity: row.equity
-    }, { onConflict: "trader_id,date" })
+ .from("equity_history")
+ .upsert({
+  trader_id: traderId,
+  date: row.date,
+  equity: account.equity
+ }, { onConflict: "trader_id,date" })
 
   }
 
@@ -176,19 +176,25 @@ try {
 
   for (const trade of tradeData.history) {
 
-   await supabase
-    .from("trade_history")
-    .upsert({
-     trader_id: traderId,
-     ticket: trade.ticket,
-     symbol: trade.symbol,
-     type: trade.type,
-     lot: trade.lots,
-     entry_price: trade.openPrice,
-     exit_price: trade.closePrice,
-     profit: trade.profit,
-     date: trade.closeTime
-    }, { onConflict: "ticket" })
+   const { error } = await supabase
+ .from("trade_history")
+ .upsert({
+  trader_id: traderId,
+  ticket: trade.ticket,
+  symbol: trade.symbol,
+  type: trade.type,
+  lot: trade.lots,
+  entry_price: trade.openPrice,
+  exit_price: trade.closePrice,
+  profit: trade.profit,
+  date: trade.closeTime
+ }, { onConflict: "ticket" })
+
+if (error) {
+ console.error("TRADE INSERT ERROR:", error)
+} else {
+ console.log("TRADE INSERTED:", trade.ticket)
+}
 
   }
 
