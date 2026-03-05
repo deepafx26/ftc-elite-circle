@@ -104,7 +104,7 @@ export async function GET() {
       drawdown_percentage: account.drawdown,
       updated_at: new Date()
      })
-     .eq("id", trader.id)
+     .eq("id", traderId)
 
     // Log jika update gagal
     if (error) {
@@ -174,7 +174,7 @@ for (const trade of tradeData.history) {
   await supabase
     .from("trade_history")
     .insert({
-      trader_id: trader.id,
+      trader_id: traderId,
       ticket: trade.ticket,
       symbol: trade.symbol,
       type: trade.type,
@@ -183,6 +183,8 @@ for (const trade of tradeData.history) {
       open_time: trade.openTime,
       close_time: trade.closeTime
     })
+    .onConflict("ticket")
+    .ignore()
   }
 }
 await new Promise(resolve => setTimeout(resolve, 1500))
