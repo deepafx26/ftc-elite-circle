@@ -102,8 +102,7 @@ export async function GET() {
       console.log("DETAIL UPDATED");
 
       // equity history
-      try {
-        const equityRes = await fetch(
+              const equityRes = await fetch(
           `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
         );
         const equityData = await equityRes.json();
@@ -111,21 +110,27 @@ export async function GET() {
         if (equityData?.dailyGain?.length) {
           console.log("EQUITY ROWS:", equityData.dailyGain.length);
 
+          // kita bisa maintain equity cumulative
+          let cumulativeEquity = account.balance; // atau starting equity
+
           for (const row of equityData.dailyGain) {
+            // jika Myfxbook API ngasih equity langsung, pakai itu
+            // kalau nggak, bisa hitung cumulative
+            const equity = row.equity || cumulativeEquity * (1 + row.gain / 100);
+
             await supabase
               .from("equity_history")
               .upsert({
                 trader_id: traderId,
                 date: row.date,
-                equity: account.equity
+                equity: equity
               }, { onConflict: "trader_id,date" });
+
+            cumulativeEquity = equity; // update untuk next row
           }
         } else {
           console.log("NO EQUITY DATA:", account.name);
         }
-      } catch (err) {
-        console.error("EQUITY ERROR:", err);
-      }
 
       // trade history
       try {
