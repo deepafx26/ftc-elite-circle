@@ -192,6 +192,13 @@ try {
     continue;
   }
 
+  //validasi type
+let type = trade.action?.toUpperCase(); // 'Buy' -> 'BUY', 'Sell' -> 'SELL'
+
+if (!['BUY','SELL'].includes(type)) {
+  console.warn("TRADE SKIPPED (invalid type):", trade);
+  continue;
+}
   // insert ke Supabase
   const { error } = await supabase.from("trade_history").upsert({
     trader_id: traderId,
