@@ -189,7 +189,7 @@ try {
       trader_id: traderId,
       ticket: trade.ticket,
       symbol: trade.symbol,
-      type: trade.action,
+      type: trade.type,
       lot: lot,
       entry_price: trade.openPrice,
       exit_price: trade.closePrice,
