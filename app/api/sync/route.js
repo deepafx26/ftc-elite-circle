@@ -93,6 +93,10 @@ console.log("ACCOUNTS FOUND:", accounts.accounts.length)
     }
 
    }
+   if (!traderId) {
+  console.log("SKIP ACCOUNT: traderId missing")
+  continue
+}
 
    // Jika trader SUDAH ADA → UPDATE data terbaru
    else {
@@ -118,6 +122,10 @@ console.log("ACCOUNTS FOUND:", accounts.accounts.length)
     }
 
    }
+   if (!traderId) {
+  console.log("SKIP ACCOUNT: traderId missing")
+  continue
+}
 // =========================
 // INSERT / UPDATE trader_details
 // =========================
@@ -157,13 +165,13 @@ if (equityData && equityData.dailyGain) {
    for (const row of equityData.dailyGain) {
 
   await supabase
-    .from("equity_history")
-    .insert({
-      trader_id: traderId,
-      date: row.date,
-      equity: row.equity,
-      balance: row.balance
-    })
+  .from("equity_history")
+  .upsert({
+    trader_id: traderId,
+    date: row.date,
+    equity: row.equity,
+    balance: row.balance
+  }, { onConflict: "trader_id,date" })
   }
 }
 
@@ -192,17 +200,17 @@ if (tradeData && tradeData.history) {
 for (const trade of tradeData.history) {
 
   await supabase
-    .from("trade_history")
-    .upsert({
-      trader_id: traderId,
-      ticket: trade.ticket,
-      symbol: trade.symbol,
-      type: trade.type,
-      lots: trade.lots,
-      profit: trade.profit,
-      open_time: trade.openTime,
-      close_time: trade.closeTime
-    })
+  .from("trade_history")
+  .upsert({
+    trader_id: traderId,
+    ticket: trade.ticket,
+    symbol: trade.symbol,
+    type: trade.type,
+    lots: trade.lots,
+    profit: trade.profit,
+    open_time: trade.openTime,
+    close_time: trade.closeTime
+  }, { onConflict: "ticket" })
     
   }
   
