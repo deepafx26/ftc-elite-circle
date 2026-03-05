@@ -7,15 +7,15 @@ const supabase = createClient(
 
 const email = process.env.MYFXBOOK_EMAIL
 const password = process.env.MYFXBOOK_PASSWORD
-    if (!email || !password) {
-        return new Response("Missing Myfxbook credentials")
-    }
+    
 export async function GET() {
 
  const login = await fetch(
   `https://www.myfxbook.com/api/login.json?email=${email}&password=${password}`
  )
-
+if (!email || !password) {
+        return new Response("Missing Myfxbook credentials")
+    }
  const loginData = await login.json()
  const session = loginData.session
 
