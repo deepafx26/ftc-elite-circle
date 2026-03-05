@@ -102,9 +102,9 @@ export async function GET() {
 
    }
 
-   // ==============================
-   // UPDATE trader_details
-   // ==============================
+   // ==============================//
+   // UPDATE trader_details         //
+   // ==============================//
 
    await supabase
     .from("trader_details")
@@ -117,85 +117,92 @@ export async function GET() {
 
    console.log("DETAIL UPDATED")
 
-   // ==============================
-   // EQUITY HISTORY
-   // ==============================
+    // ==============================//
+    // EQUITY HISTORY                //
+    // ==============================//
 
-   try {
+try {
 
-    const equityRes = await fetch(
-     `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
-    )
+ const equityRes = await fetch(
+  `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
+ )
 
-    const equityData = await equityRes.json()
+ const equityData = await equityRes.json()
 
-    if (equityData && equityData.dailyGain) {
+ if (equityData?.dailyGain?.length) {
 
-     for (const row of equityData.dailyGain) {
+  console.log("EQUITY ROWS:", equityData.dailyGain.length)
 
-      await supabase
-       .from("equity_history")
-       .insert({
-        trader_id: traderId,
-        date: row.date,
-        equity: row.equity
-       })
+  for (const row of equityData.dailyGain) {
 
-      console.log("EQUITY:", row.date, row.equity)
+   await supabase
+    .from("equity_history")
+    .upsert({
+     trader_id: traderId,
+     date: row.date,
+     equity: row.equity
+    }, { onConflict: "trader_id,date" })
 
-     }
+  }
 
-    }
+ } else {
 
-   } catch (err) {
+  console.log("NO EQUITY DATA:", account.name)
 
-    console.error("EQUITY ERROR:", err)
+ }
 
-   }
+} catch (err) {
 
-   // ==============================
-   // TRADE HISTORY
-   // ==============================
+ console.error("EQUITY ERROR:", err)
 
-   try {
+}
 
-    const tradeRes = await fetch(
-     `https://www.myfxbook.com/api/get-history.json?session=${session}&id=${accountId}`
-    )
 
-    const tradeData = await tradeRes.json()
+// ==============================
+// TRADE HISTORY
+// ==============================
 
-    if (tradeData && tradeData.history) {
+try {
 
-     console.log("TRADE COUNT:", tradeData.history.length)
+ const tradeRes = await fetch(
+  `https://www.myfxbook.com/api/get-history.json?session=${session}&id=${accountId}`
+ )
 
-     for (const trade of tradeData.history) {
+ const tradeData = await tradeRes.json()
 
-      await supabase
-       .from("trade_history")
-       .upsert({
-        trader_id: traderId,
-        ticket: trade.ticket,
-        symbol: trade.symbol,
-        type: trade.type,
-        lot: trade.lots,
-        entry_price: trade.openPrice,
-        exit_price: trade.closePrice,
-        profit: trade.profit,
-        date: trade.closeTime
-       }, { onConflict: "ticket" })
+ if (tradeData?.history?.length) {
 
-      console.log("TRADE:", trade.ticket)
+  console.log("TRADE ROWS:", tradeData.history.length)
 
-     }
+  for (const trade of tradeData.history) {
 
-    }
+   await supabase
+    .from("trade_history")
+    .upsert({
+     trader_id: traderId,
+     ticket: trade.ticket,
+     symbol: trade.symbol,
+     type: trade.type,
+     lot: trade.lots,
+     entry_price: trade.openPrice,
+     exit_price: trade.closePrice,
+     profit: trade.profit,
+     date: trade.closeTime
+    }, { onConflict: "ticket" })
 
-   } catch (err) {
+  }
 
-    console.error("TRADE ERROR:", err)
+ } else {
 
-   }
+  console.log("NO TRADE HISTORY:", account.name)
+
+ }
+
+} catch (err) {
+
+ console.error("TRADE ERROR:", err)
+
+}
 
   }
 
