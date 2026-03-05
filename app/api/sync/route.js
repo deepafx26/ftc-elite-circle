@@ -32,45 +32,34 @@ export async function GET() {
    .select("*")
    .eq("myfxbook_account_id", accountId)
 
-  if (!traders.length) continue
-
-  const trader = traders[0]
-
-  const historyRes = await fetch(
-   `https://www.myfxbook.com/api/get-history.json?session=${session}&id=${accountId}`
-  )
-
-  const historyData = await historyRes.json()
-
-  for (const trade of historyData.history) {
+  if (!traders || traders.length === 0) {
 
    await supabase
-    .from("trades")
-    .upsert({
-     ticket: trade.ticket,
-     trader_id: trader.id,
-     symbol: trade.symbol,
-     type: trade.type,
-     lots: trade.lots,
-     open_price: trade.openPrice,
-     close_price: trade.closePrice,
-     profit: trade.profit,
-     open_time: trade.openTime,
-     close_time: trade.closeTime
+    .from("traders")
+    .insert({
+     name: account.name,
+     myfxbook_account_id: accountId,
+     growth_percentage: account.gain,
+     drawdown_percentage: account.drawdown,
+     current_equity: account.equity,
+     created_at: new Date()
     })
 
-  }
+  } else {
 
-  await supabase
-   .from("traders")
-   .update({
-    growth_percentage: account.gain,
-    drawdown_percentage: account.drawdown,
-    current_equity: account.equity,
-    balance: account.balance,
-    updated_at: new Date()
-   })
-   .eq("id", trader.id)
+   const trader = traders[0]
+
+   await supabase
+    .from("traders")
+    .update({
+     growth_percentage: account.gain,
+     drawdown_percentage: account.drawdown,
+     current_equity: account.equity,
+     updated_at: new Date()
+    })
+    .eq("id", trader.id)
+
+  }
 
  }
 
