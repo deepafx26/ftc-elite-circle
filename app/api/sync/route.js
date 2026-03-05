@@ -102,35 +102,41 @@ export async function GET() {
       console.log("DETAIL UPDATED");
 
       // equity history
-              const equityRes = await fetch(
-          `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
-        );
-        const equityData = await equityRes.json();
+              try {
+            const equityRes = await fetch(
+              `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
+            );
+            const equityData = await equityRes.json();
 
-        if (equityData?.dailyGain?.length) {
-          console.log("EQUITY ROWS:", equityData.dailyGain.length);
+            if (equityData?.dailyGain?.length) {
+              console.log("EQUITY ROWS:", equityData.dailyGain.length);
 
-          // kita bisa maintain equity cumulative
-          let cumulativeEquity = account.balance; // atau starting equity
+              for (const row of equityData.dailyGain) {
+                await supabase
+                  .from("equity_history")
+                  .upsert({
+                    trader_id: traderId,
+                    date: row.date,
+                    equity: row.equity // kalau ada, atau hitung cumulative gain
+                  }, { onConflict: "trader_id,date" });
+              }
+            } else {
+              console.log("NO EQUITY DATA, fallback to current equity:", account.name);
 
-          for (const row of equityData.dailyGain) {
-            // jika Myfxbook API ngasih equity langsung, pakai itu
-            // kalau nggak, bisa hitung cumulative
-            const equity = row.equity || cumulativeEquity * (1 + row.gain / 100);
-
-            await supabase
-              .from("equity_history")
-              .upsert({
-                trader_id: traderId,
-                date: row.date,
-                equity: equity
-              }, { onConflict: "trader_id,date" });
-
-            cumulativeEquity = equity; // update untuk next row
+              // fallback: insert satu row pakai current equity
+              await supabase
+                .from("equity_history")
+                .upsert({
+                  trader_id: traderId,
+                  date: new Date(), // hari ini
+                  equity: account.equity || account.balance || 0
+                }, { onConflict: "trader_id,date" });
+            }
+          } catch (err) {
+            console.error("EQUITY ERROR:", err);
           }
-        } else {
-          console.log("NO EQUITY DATA:", account.name);
-        }
+
+
 
       // trade history
       try {
