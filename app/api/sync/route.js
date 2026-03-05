@@ -176,27 +176,32 @@ try {
 
   for (const trade of tradeData.history) {
 
-   const { error } = await supabase
- .from("trade_history")
- .upsert({
-  trader_id: traderId,
-  ticket: trade.ticket,
-  symbol: trade.symbol,
-  type: trade.action,
-  lot: trade.lots,
-  entry_price: trade.openPrice,
-  exit_price: trade.closePrice,
-  profit: trade.profit,
-  date: trade.closeTime
- }, { onConflict: "ticket" })
-
-if (error) {
- console.error("TRADE INSERT ERROR:", error)
-} else {
- console.log("TRADE INSERTED:", trade.ticket)
-}
-
+  // cek field penting
+  if (!trade.action || trade.lots == null) {
+    console.warn("TRADE SKIPPED (missing type/lot):", trade);
+    continue; // skip insert
   }
+
+  const { error } = await supabase
+    .from("trade_history")
+    .upsert({
+      trader_id: traderId,
+      ticket: trade.ticket,
+      symbol: trade.symbol,
+      type: trade.action,
+      lot: trade.lots,
+      entry_price: trade.openPrice,
+      exit_price: trade.closePrice,
+      profit: trade.profit,
+      date: trade.closeTime
+    }, { onConflict: "ticket" });
+
+  if (error) {
+    console.error("TRADE INSERT ERROR:", error);
+  } else {
+    console.log("TRADE INSERTED:", trade.ticket);
+  }
+}
 
  } else {
 
