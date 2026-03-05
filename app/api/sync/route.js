@@ -133,6 +133,7 @@ try {
 }
 
 // Simpan equity history ke table equity_history
+if (equityData && equityData.dailyGain) {
    for (const row of equityData.dailyGain) {
 
   await supabase
@@ -143,16 +144,30 @@ try {
       equity: row.equity,
       balance: row.balance
     })
-
+  }
 }
 
-const tradeRes = await fetch(
- `https://www.myfxbook.com/api/get-history.json?session=${session}&id=${accountId}`
-)
+// ambil trade history per akun
+let tradeData = null
+
+try {
+
+ const tradeRes = await fetch(
+  `https://www.myfxbook.com/api/get-history.json?session=${session}&id=${accountId}`
+ )
+
+ tradeData = await tradeRes.json()
+
+} catch (err) {
+
+ console.error("TRADE FETCH ERROR:", err)
+
+}
 
 const tradeData = await tradeRes.json()
 
 // Simpan trade history ke table trade_history
+if (tradeData && tradeData.history) {
 for (const trade of tradeData.history) {
 
   await supabase
@@ -167,9 +182,9 @@ for (const trade of tradeData.history) {
       open_time: trade.openTime,
       close_time: trade.closeTime
     })
-
+  }
 }
-
+await new Promise(resolve => setTimeout(resolve, 1500))
 
   console.log("TRADER ID:", traderId)
   
