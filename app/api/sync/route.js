@@ -183,9 +183,9 @@ for (const trade of tradeData.history) {
       open_time: trade.openTime,
       close_time: trade.closeTime
     })
-    .onConflict("ticket")
-    .ignore()
+    
   }
+  
 }
 await new Promise(resolve => setTimeout(resolve, 1500))
 
