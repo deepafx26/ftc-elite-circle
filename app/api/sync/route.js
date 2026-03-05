@@ -6,10 +6,10 @@ const supabase = createClient(
  process.env.NEXT_PUBLIC_SUPABASE_URL,
  process.env.SUPABASE_SERVICE_ROLE_KEY
 )
-
+export const dynamic = "force-dynamic"
 // Endpoint API /api/sync
 export async function GET() {
-
+console.log("SYNC API TRIGGERED")
  try {
 
   // Ambil credential Myfxbook dari environment variable
@@ -25,7 +25,7 @@ export async function GET() {
   const login = await fetch(
    `https://www.myfxbook.com/api/login.json?email=${email}&password=${password}`
   )
-
+  console.log("MYFXBOOK LOGIN:", loginData)
   // Convert response login menjadi JSON
   const loginData = await login.json()
 
@@ -36,6 +36,8 @@ export async function GET() {
   const accountsRes = await fetch(
    `https://www.myfxbook.com/api/get-my-accounts.json?session=${session}`
   )
+
+console.log("ACCOUNTS FOUND:", accounts.accounts.length)
 
   // Convert response account menjadi JSON
   const accounts = await accountsRes.json()
@@ -51,6 +53,8 @@ export async function GET() {
    // ID account Myfxbook
    const accountId = account.id
 
+    console.log("PROCESS ACCOUNT:", account.name)
+
    // Cek apakah account ini sudah ada di table traders
    const { data: traders, error: findError } = await supabase
     .from("traders")
@@ -62,7 +66,7 @@ export async function GET() {
     console.error("CHECK ERROR:", findError)
     continue
    }
-
+   
    // Jika trader BELUM ADA di database → INSERT
    if (!traders || traders.length === 0) {
 
@@ -203,7 +207,7 @@ for (const trade of tradeData.history) {
   }
   
 }
-await new Promise(resolve => setTimeout(resolve, 1500))
+
 
   console.log("TRADER ID:", traderId)
   
