@@ -176,8 +176,17 @@ try {
 
   for (const trade of tradeData.history) {
 
-  // cek field penting
+      // skip Deposit/Withdrawal
+  if (trade.action === 'Deposit' || trade.action === 'Withdrawal') {
+    console.log("NON-TRADE SKIPPED:", trade);
+    continue;
+  }
+
+  // ambil lot dari sizing.value
   const lot = parseFloat(trade.sizing?.value);
+
+
+  // cek field penting
   if (!trade.action || trade.lots == null) {
     console.warn("TRADE SKIPPED (missing type/lot):", trade);
     continue; // skip insert
