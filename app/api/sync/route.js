@@ -62,16 +62,19 @@ export async function GET() {
    // Jika trader BELUM ADA di database → INSERT
    if (!traders || traders.length === 0) {
 
-    const { error } = await supabase
-     .from("traders")
-     .insert({
-      myfxbook_account_id: accountId,
-      trader_name: account.name,
-      current_equity: account.equity,
-      growth_percentage: account.gain,
-      drawdown_percentage: account.drawdown,
-      created_at: new Date()
-     })
+    const { data, error } = await supabase
+ .from("traders")
+ .insert({
+  myfxbook_account_id: accountId,
+  trader_name: account.name,
+  current_equity: account.equity,
+  growth_percentage: account.gain,
+  drawdown_percentage: account.drawdown,
+  created_at: new Date()
+ })
+ .select()
+ .single()
+traderId = data.id
 
     // Log jika insert gagal
     if (error) {
@@ -86,6 +89,7 @@ export async function GET() {
    else {
 
     const trader = traders[0]
+      traderId = trader.id
 
     const { error } = await supabase
      .from("traders")
@@ -106,8 +110,57 @@ export async function GET() {
 
    }
 
+   // ambil equity history per akun
+const equityRes = await fetch(
+ `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
+)
+
+const equityData = await equityRes.json()
+
+// Simpan equity history ke table equity_history
+   for (const row of equityData.dailyGain) {
+
+  await supabase
+    .from("equity_history")
+    .insert({
+      trader_id: traderId,
+      date: row.date,
+      equity: row.equity,
+      balance: row.balance
+    })
+
+}
+
+const tradeRes = await fetch(
+ `https://www.myfxbook.com/api/get-history.json?session=${session}&id=${accountId}`
+)
+
+const tradeData = await tradeRes.json()
+
+// Simpan trade history ke table trade_history
+for (const trade of tradeData.history) {
+
+  await supabase
+    .from("trade_history")
+    .insert({
+      trader_id: traderId,
+      ticket: trade.ticket,
+      symbol: trade.symbol,
+      type: trade.type,
+      lots: trade.lots,
+      profit: trade.profit,
+      open_time: trade.openTime,
+      close_time: trade.closeTime
+    })
+
+}
+
+
+  
+  
+  
   }
-console.log("ACCOUNTS:", accounts)
+  console.log("ACCOUNTS:", accounts)
   // Response jika proses sync selesai
   return Response.json({ status: "sync complete" })
 
