@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Target, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Trader } from '@/lib/supabase';
+import { traders } from '@/lib/supabase';
 
 type TraderDetail = {
-  trader: Trader;
+  trader: traders;
   details: {
     id: string;
     trader_id: string;
