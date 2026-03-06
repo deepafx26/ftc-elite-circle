@@ -101,7 +101,7 @@ export default function Home() {
       </div>
     );
   }
-
+// Jika tidak ada data trader
   return (
     <main className="min-h-screen bg-[#0B0B0F] text-white">
       <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
