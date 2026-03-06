@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowUpDown, Trophy, Medal, Award, TrendingUp, TrendingDown } from 'lucide-react';
-import { Trader } from '@/lib/supabase';
+import { traders } from '@/lib/supabase';
 
 type SortField = 'growth_percentage' | 'drawdown_percentage' | 'current_equity';
 type SortOrder = 'asc' | 'desc';
 
 export default function Home() {
-  const [traders, setTraders] = useState<Trader[]>([]);
+  const [traders, setTraders] = useState<traders[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('growth_percentage');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
