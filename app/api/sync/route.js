@@ -155,7 +155,9 @@ export async function GET() {
               continue;
             }
         // ambil ticket fallback
-          const ticket = trade.ticket || trade.orderId || trade.positionId;
+          const ticket =
+          trade.ticket ??
+          `${trade.symbol}_${trade.openPrice}_${trade.closePrice}_${trade.closeTime}`;
 
           if (!ticket) {
             console.warn("TRADE SKIPPED (no ticket):", trade);
@@ -193,7 +195,7 @@ export async function GET() {
               exit_price: trade.closePrice || 0,
               profit: trade.profit || 0,
               date: trade.closeTime
-            }, { onConflict: "trader_id,ticket" });
+            }, { onConflict: "ticket" });
 
             if (error) console.error("TRADE INSERT ERROR:", error);
             else console.log("TRADE INSERTED:", trade.ticket);
