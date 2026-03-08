@@ -16,7 +16,6 @@ export async function GET(
       .from('trade_history')
       .select('*', { count: 'exact' })
       .eq('trader_id', traderId)
-      .eq('symbol', 'XAUUSD')
       .order('date', { ascending: false })
       .range(offset, offset + limit - 1);
 

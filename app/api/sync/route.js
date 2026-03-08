@@ -187,7 +187,7 @@ export async function GET() {
               exit_price: trade.closePrice || 0,
               profit: trade.profit || 0,
               date: trade.closeTime
-            }, { onConflict: "ticket" });
+            }, { onConflict: "trader_id,ticket" });
 
             if (error) console.error("TRADE INSERT ERROR:", error);
             else console.log("TRADE INSERTED:", trade.ticket);
