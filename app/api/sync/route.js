@@ -154,7 +154,13 @@ export async function GET() {
               console.log("NON-TRADE SKIPPED:", trade);
               continue;
             }
+        // ambil ticket fallback
+          const ticket = trade.ticket || trade.orderId || trade.positionId;
 
+          if (!ticket) {
+            console.warn("TRADE SKIPPED (no ticket):", trade);
+            continue;
+          }
             // ambil lot dari sizing.value
             const lot = parseFloat(trade.sizing?.value || trade.lots);
             if (!trade.action || isNaN(lot) || lot <= 0) {
@@ -179,7 +185,7 @@ export async function GET() {
 
             const { error } = await supabase.from("trade_history").upsert({
               trader_id: traderId,
-              ticket: trade.ticket,
+              ticket: ticket,
               symbol: trade.symbol,
               type: type,
               lot: lot,
