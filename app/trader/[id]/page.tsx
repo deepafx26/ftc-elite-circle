@@ -64,14 +64,21 @@ export default function TraderDetailPage({ params }: { params: { id: string } })
   };
 
   const fetchEquityHistory = async () => {
-    try {
-      const response = await fetch(`/api/trader/${params.id}/equity-history`);
-      const data = await response.json();
-      setEquityData(data.data || []);
-    } catch (error) {
-      console.error('Error fetching equity history:', error);
-    }
-  };
+  try {
+    const response = await fetch(`/api/trader/${params.id}/equity-history`);
+    const result = await response.json();
+
+    const formatted = (result.data || []).map((row:any) => ({
+      date: row.date,
+      equity: Number(row.equity)
+    }));
+
+    setEquityData(formatted);
+
+  } catch (error) {
+    console.error('Error fetching equity history:', error);
+  }
+};
 
   const fetchTrades = async () => {
     setLoading(true);
@@ -243,14 +250,18 @@ export default function TraderDetailPage({ params }: { params: { id: string } })
               <LineChart data={equityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2f" />
                 <XAxis
-                  dataKey="date"
-                  stroke="#888"
-                  tick={{ fontSize: 12 }}
+                dataKey="date"
+                tickFormatter={(d) =>
+                  new Date(d).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric'
+                  })
+                }
                 />
                 <YAxis
-                  stroke="#888"
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => `$${value / 1000}k`}
+                stroke="#888"
+                tick={{ fontSize: 12 }}
+                tickFormatter={(value) => `$${value}`}
                 />
                 <Tooltip
                   contentStyle={{
@@ -280,7 +291,7 @@ export default function TraderDetailPage({ params }: { params: { id: string } })
 
         {/* Trade History */}
         <div className="bg-[#14141A] rounded-2xl p-6 border border-gray-800">
-          <h2 className="text-2xl font-bold text-white mb-6">XAUUSD Trade History</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">Trade History</h2>
 
           {trades.length > 0 ? (
             <>
@@ -289,6 +300,7 @@ export default function TraderDetailPage({ params }: { params: { id: string } })
                   <thead className="bg-[#1A1A24]">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Date</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Pair</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Type</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Lot</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Entry</th>
@@ -303,6 +315,9 @@ export default function TraderDetailPage({ params }: { params: { id: string } })
                           <div>{formatDate(trade.date)}</div>
                           <div className="text-xs text-gray-500">{formatTime(trade.date)}</div>
                         </td>
+                        <td className="px-4 py-3 text-sm text-gray-300 font-semibold">
+                            {trade.symbol}
+                          </td>
                         <td className="px-4 py-3 text-sm">
                           <span className={`font-semibold px-2 py-1 rounded text-xs ${
                             trade.type === 'buy'
@@ -365,7 +380,7 @@ export default function TraderDetailPage({ params }: { params: { id: string } })
             </>
           ) : (
             <div className="h-40 flex items-center justify-center text-gray-400">
-              No XAUUSD trades found
+              No trades history found
             </div>
           )}
         </div>
