@@ -107,38 +107,58 @@ export async function GET() {
 
       // equity history
               try {
-            const equityRes = await fetch(
-              `https://www.myfxbook.com/api/get-daily-gain.json?session=${session}&id=${accountId}`
-            );
-            const equityData = await equityRes.json();
 
-            if (equityData?.dailyGain?.length) {
-              console.log("EQUITY ROWS:", equityData.dailyGain.length);
+  const equityRes = await fetch(
+    `https://www.myfxbook.com/api/get-data-daily.json?session=${session}&id=${accountId}`
+  );
 
-              for (const row of equityData.dailyGain) {
-                await supabase
-                  .from("equity_history")
-                  .upsert({
-                    trader_id: traderId,
-                    date: row.date,
-                    equity: row.equity // kalau ada, atau hitung cumulative gain
-                  }, { onConflict: "trader_id,date" });
-              }
-            } else {
-              console.log("NO EQUITY DATA, fallback to current equity:", account.name);
+  const equityData = await equityRes.json();
 
-              // fallback: insert satu row pakai current equity
-              await supabase
-                .from("equity_history")
-                .upsert({
-                  trader_id: traderId,
-                  date: new Date(), // hari ini
-                  equity: account.equity || account.balance || 0
-                }, { onConflict: "trader_id,date" });
-            }
-          } catch (err) {
-            console.error("EQUITY ERROR:", err);
-          }
+  if (equityData?.daily?.length) {
+
+    console.log("EQUITY ROWS:", equityData.daily.length);
+
+    for (const row of equityData.daily) {
+
+      const date = row.date;
+      const equity = Number(row.equity || 0);
+      const balance = Number(row.balance || 0);
+
+      await supabase
+        .from("equity_history")
+        .upsert({
+          trader_id: traderId,
+          date: date,
+          equity: equity,
+          balance: balance
+        }, {
+          onConflict: "trader_id,date"
+        });
+
+    }
+
+  } else {
+
+    console.log("NO DAILY DATA, fallback:", account.name);
+
+    await supabase
+      .from("equity_history")
+      .upsert({
+        trader_id: traderId,
+        date: new Date().toISOString().split("T")[0],
+        equity: Number(account.equity || 0),
+        balance: Number(account.balance || 0)
+      }, {
+        onConflict: "trader_id,date"
+      });
+
+  }
+
+} catch (err) {
+
+  console.error("EQUITY ERROR:", err);
+
+}
 
 
 
