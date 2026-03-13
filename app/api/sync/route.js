@@ -90,12 +90,16 @@ export async function GET() {
       }
 
       // update trader_details
+      const balance = Number(account.balance);
+      const profit = Number(account.profit);
+
+      const totalDeposit = balance - profit;
       await supabase
         .from("trader_details")
         .upsert({
           trader_id: traderId,
           current_balance: account.balance,
-          total_deposit: account.balance,
+          total_deposit: totalDeposit,
           updated_at: new Date()
         }, { onConflict: "trader_id" });
 
